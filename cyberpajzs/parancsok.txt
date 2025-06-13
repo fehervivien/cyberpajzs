@@ -1,0 +1,13 @@
+mvn clean install
+mvn clean test jacoco:report
+tree /F /A
+mvn clean install -X > full_log.txt 2>&1
+mvn clean install -U -X > full_log.txt 2>&1
+
+Ezek az ftp adatok:
+Szerver név
+s58.tarhely.com
+IP-cím
+185.111.89.243
+vivien@cyberpajzs.hu
+s>L0CnjA]5

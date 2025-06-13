@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+<head>
+    <title th:text="'Regisztráció'"></title>
+</head>
+<body>
+
+<div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl p-8 md:p-12 lg:p-16 w-full max-w-md">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Regisztráció</h1>
+
+        <div th:if="${param.error}" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert">
+            <p class="font-bold">Hiba!</p>
+            <p class="text-sm" th:text="${param.error}">A regisztráció során hiba történt. Kérjük, próbálja újra.</p>
+        </div>
+        <div th:if="${param.success}" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-4" role="alert">
+            <p class="font-bold">Sikeres regisztráció!</p>
+            <p class="text-sm">Fiókod sikeresen létrejött. Most már bejelentkezhetsz.</p>
+        </div>
+
+        <form th:action="@{/register}" method="post" class="space-y-6">
+            <div>
+                <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Felhasználónév:</label>
+                <input type="text" id="username" name="username" placeholder="Felhasználóneved" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="email" class="block text-gray-700 text-sm font-bold mb-2">E-mail cím:</label>
+                <input type="email" id="email" name="email" placeholder="email@pelda.com" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Jelszó:</label>
+                <input type="password" id="password" name="password" placeholder="Jelszavad" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="firstName" class="block text-gray-700 text-sm font-bold mb-2">Vezetéknév:</label>
+                <input type="text" id="firstName" name="firstName" placeholder="Vezetékneved" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="lastName" class="block text-gray-700 text-sm font-bold mb-2">Keresztnév:</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Keresztneved" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105 shadow-lg">
+                    Regisztráció
+                </button>
+                <a th:href="@{/login}" class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800">
+                    Már van fiókod? Jelentkezz be!
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

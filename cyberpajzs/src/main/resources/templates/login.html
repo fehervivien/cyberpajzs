@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+<head>
+    <title th:text="'Bejelentkezés'"></title>
+</head>
+<body>
+
+<div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl p-8 md:p-12 lg:p-16 w-full max-w-md">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Bejelentkezés</h1>
+
+        <div th:if="${param.error}" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert">
+            <p class="font-bold">Hiba!</p>
+            <p class="text-sm">Hibás felhasználónév vagy jelszó.</p>
+        </div>
+        <div th:if="${param.logout}" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-4" role="alert">
+            <p class="font-bold">Sikeres kijelentkezés!</p>
+            <p class="text-sm">Kijelentkeztél az oldalról.</p>
+        </div>
+
+        <form th:action="@{/perform_login}" method="post" class="space-y-6">
+            <div>
+                <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Felhasználónév:</label>
+                <input type="text" id="username" name="username" placeholder="Felhasználóneved" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Jelszó:</label>
+                <input type="password" id="password" name="password" placeholder="Jelszavad" required
+                       class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105 shadow-lg">
+                    Bejelentkezés
+                </button>
+                <a th:href="@{/register}" class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800">
+                    Nincs még fiókod? Regisztrálj!
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

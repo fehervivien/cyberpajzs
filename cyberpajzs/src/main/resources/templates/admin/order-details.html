@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+<head>
+  <title th:text="'Admin - Rendelés Részletei'"></title>
+</head>
+<body>
+
+<div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow">
+  <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Rendelés Részletei (Admin)</h1>
+
+  <div th:if="${order != null}" class="bg-white rounded-lg shadow-xl p-6 md:p-8 lg:p-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Rendelés Információk</h2>
+        <p class="text-gray-700 mb-2"><strong>Rendelés ID:</strong> <span th:text="${order.id}"></span></p>
+        <p class="text-gray-700 mb-2"><strong>Felhasználó:</strong> <span th:text="${order.user.username}"></span> (<span th:text="${order.user.email}"></span>)</p>
+        <p class="text-gray-700 mb-2"><strong>Dátum:</strong> <span th:text="${#temporals.format(order.orderDate, 'yyyy.MM.dd HH:mm')}"></span></p>
+        <p class="text-gray-700 mb-2"><strong>Összeg:</strong> <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span></p>
+        <p class="text-gray-700 mb-4"><strong>Státusz:</strong> <span th:classappend="${order.status == 'COMPLETED' ? 'bg-green-100 text-green-800' : (order.status == 'PENDING' ? 'bg-yellow-100 text-yellow-800' : (order.status == 'CANCELLED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'))}"
+                                                                      class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" th:text="${order.status}"></span></p>
+
+        <h3 class="text-xl font-bold text-gray-800 mt-6 mb-4 border-b pb-2">Szállítási Adatok</h3>
+        <p class="text-gray-700 mb-2"><span th:text="${order.firstName + ' ' + order.lastName}"></span></p>
+        <p class="text-gray-700 mb-2" th:text="${order.address}"></p>
+        <p class="text-gray-700 mb-2"><span th:text="${order.zipCode}"></span> <span th:text="${order.city}"></span></p>
+        <p class="text-gray-700 mb-2" th:text="${order.country}"></p>
+        <p th:if="${order.phone != null and !order.phone.isEmpty()}" class="text-gray-700 mb-2"><strong>Telefon:</strong> <span th:text="${order.phone}"></span></p>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Rendelés Tételei</h2>
+        <div th:each="item : ${order.orderItems}" class="flex items-center mb-4 p-3 bg-gray-50 rounded-md">
+          <img class="h-16 w-16 object-cover rounded-md mr-4" th:src="${item.product.imageUrl ?: 'https://placehold.co/100x100/a8e0f9/2a2a2a?text=Termek_kep'}"
+               alt="Termék kép" onerror="this.onerror=null;this.src='https://placehold.co/100x100/a8e0f9/2a2a2a?text=Hiba_Nincs_Kep';">
+          <div>
+            <p class="text-lg font-semibold text-gray-900" th:text="${item.product.name}"></p>
+            <p class="text-sm text-gray-600">Mennyiség: <span th:text="${item.quantity}"></span></p>
+            <p class="text-sm text-gray-600">Egységár: <span th:text="${#numbers.formatDecimal(item.priceAtOrder, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span></p>
+            <p class="text-sm font-bold text-gray-800">Részösszeg: <span th:text="${#numbers.formatDecimal(item.priceAtOrder * item.quantity, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span></p>
+          </div>
+        </div>
+
+        <h3 class="text-xl font-bold text-gray-800 mt-6 mb-4 border-b pb-2">Kapcsolódó Licenckulcsok</h3>
+        <div th:if="${orderLicenses != null and not orderLicenses.empty}">
+          <div th:each="license : ${orderLicenses}" class="mb-3 p-3 border border-gray-200 rounded-md bg-gray-50">
+            <p class="text-gray-700"><strong>Termék:</strong> <span th:text="${license.product.name}"></span></p>
+            <p class="text-gray-700 font-mono break-all"><strong>Kulcs:</strong> <span th:text="${license.licenseKey}"></span></p>
+            <p class="text-gray-700"><strong>Státusz:</strong> <span th:classappend="${license.status == 'ACTIVE' ? 'bg-green-100 text-green-800' : (license.status == 'EXPIRED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')}"
+                                                                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" th:text="${license.status}"></span></p>
+            <p class="text-gray-700"><strong>Lejárat:</strong> <span th:text="${license.expiryDate != null ? #temporals.format(license.expiryDate, 'yyyy.MM.dd HH:mm') : 'N/A'}"></span></p>
+          </div>
+        </div>
+        <div th:unless="${orderLicenses != null and not orderLicenses.empty}" class="text-gray-600 italic">
+          Nincsenek licenckulcsok rendelve ehhez a rendeléshez.
+        </div>
+
+        <h3 class="text-xl font-bold text-gray-800 mt-6 mb-4 border-b pb-2">Rendelés Státusz Módosítása</h3>
+        <form th:action="@{/admin/orders/update-status/{orderId}(orderId=${order.id})}" method="post" class="flex flex-col sm:flex-row gap-4 items-end">
+          <div>
+            <label for="status" class="block text-gray-700 text-sm font-bold mb-2">Új státusz:</label>
+            <select id="status" name="newStatus" class="shadow appearance-none border rounded-md py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option th:each="s : ${allOrderStatuses}" th:value="${s}" th:text="${s}" th:selected="${s == order.status}">PENDING</option>
+            </select>
+          </div>
+          <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 transform hover:scale-105">
+            Státusz frissítése
+          </button>
+        </form>
+        <div th:if="${param.statusSuccess}" class="text-green-700 text-sm mt-2" th:text="${param.statusSuccess}"></div>
+        <div th:if="${param.statusError}" class="text-red-700 text-sm mt-2" th:text="${param.statusError}"></div>
+
+        <div class="mt-8 text-center">
+          <a th:href="@{/admin/orders}" class="inline-block bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 transform hover:scale-105">
+            Vissza az összes rendeléshez
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div th:unless="${order != null}" class="text-center text-gray-600 text-xl py-12 bg-white rounded-lg shadow-md">
+    <p>A megtekinteni kívánt rendelés nem található.</p>
+    <a th:href="@{/admin/orders}" class="mt-8 inline-block bg-blue-500 text-white py-3 px-6 rounded-md hover:bg-blue-600 transition duration-300">Vissza az összes rendeléshez</a>
+  </div>
+</div>
+
+</body>
+</html>

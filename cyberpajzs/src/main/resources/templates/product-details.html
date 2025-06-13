@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+<head>
+    <title th:text="${product.name} + ' Részletek'"></title>
+</head>
+<body>
+
+<div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow">
+    <div th:if="${product != null}" class="bg-white rounded-lg shadow-xl p-8 md:p-12 lg:p-16">
+        <div class="flex flex-col lg:flex-row gap-10">
+            <div class="lg:w-1/2">
+                <img class="w-full h-80 object-cover rounded-lg shadow-md" th:src="${product.imageUrl ?: 'https://placehold.co/600x400/a8e0f9/2a2a2a?text=Termek_kep'}"
+                     alt="Termék kép" onerror="this.onerror=null;this.src='https://placehold.co/600x400/a8e0f9/2a2a2a?text=Hiba_Nincs_Kep';">
+            </div>
+            <div class="lg:w-1/2 flex flex-col justify-between">
+                <div>
+                    <h1 class="text-4xl font-extrabold text-gray-800 mb-4" th:text="${product.name}">Termék Neve</h1>
+                    <p class="text-gray-700 text-lg leading-relaxed mb-6" th:text="${product.description} ?: 'Nincs leírás'"></p>
+
+                    <div class="grid grid-cols-2 gap-4 mb-6 text-gray-700">
+                        <div>
+                            <p><strong>Licenc időtartama:</strong> <span th:text="${product.durationMonths}"></span> hónap</p>
+                        </div>
+                        <div>
+                            <p><strong>Eszközlimit:</strong> <span th:text="${product.deviceLimit}"></span> eszköz</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-5xl font-extrabold text-blue-700" th:text="${#numbers.formatDecimal(product.price, 0, 'POINT', 0, 'COMMA') + ' Ft'}">9999 Ft</span>
+                        <span th:if="${product.stock > 0}" class="text-xl font-semibold text-green-600">Készleten: <span th:text="${product.stock}"></span> db</span>
+                        <span th:unless="${product.stock > 0}" class="text-xl font-semibold text-red-600">Elfogyott</span>
+                    </div>
+                </div>
+
+                <form th:action="@{/cart/add}" method="post" class="space-y-4">
+                    <input type="hidden" name="productId" th:value="${product.id}" />
+                    <div class="flex items-center space-x-4">
+                        <label for="quantity" class="text-lg font-semibold text-gray-700">Mennyiség:</label>
+                        <input type="number" id="quantity" name="quantity" value="1" min="1" th:max="${product.stock}"
+                               class="w-24 p-3 border border-gray-300 rounded-md shadow-sm text-center focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" th:if="${product.stock > 0}"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md focus:outline-none focus:shadow-outline transition duration-300 text-xl transform hover:scale-105">
+                        Kosárba rakom
+                    </button>
+                    <button type="button" th:unless="${product.stock > 0}"
+                            class="w-full bg-gray-400 text-white font-bold py-3 px-6 rounded-lg cursor-not-allowed text-xl">
+                        Elfogyott
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="mt-12 p-8 bg-gray-50 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Licenc Információk</h2>
+            <p class="text-gray-700 leading-relaxed" th:text="${product.licenseInfo ?: 'Nincs további licencinformáció ehhez a termékhez.'}"></p>
+        </div>
+    </div>
+    <div th:unless="${product != null}" class="text-center text-gray-600 text-xl py-12 bg-white rounded-lg shadow-md">
+        <p>A keresett termék nem található.</p>
+        <a th:href="@{/}" class="mt-8 inline-block bg-blue-500 text-white py-3 px-6 rounded-md hover:bg-blue-600 transition duration-300">Vissza a termékekhez</a>
+    </div>
+</div>
+
+</body>
+</html>

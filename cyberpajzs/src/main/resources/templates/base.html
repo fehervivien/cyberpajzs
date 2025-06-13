@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title layout:title-pattern="$CONTENT_TITLE | $LAYOUT_TITLE">Cyberpajzs Webshop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" th:href="@{/style.css}">
+  <th:block layout:fragment="head-extra"></th:block>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<header class="bg-blue-600 text-white p-4 shadow-md">
+  <div class="container mx-auto flex justify-between items-center">
+    <a th:href="@{/}" class="text-2xl font-bold rounded-md px-2 py-1 hover:bg-blue-700 transition duration-300">Cyberpajzs Webshop</a>
+    <nav>
+      <ul class="flex space-x-4">
+        <li><a th:href="@{/}" class="nav-link">Termékek</a></li>
+        <li><a th:href="@{/cart}" class="nav-link">Kosár</a></li>
+        <li th:if="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/orders}" class="nav-link">Rendeléseim</a>
+        </li>
+        <li th:if="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/my-licenses}" class="nav-link">Saját Licenckulcsaim</a>
+        </li>
+        <li th:if="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/profile}" class="nav-link">Profilom</a>
+        </li>
+        <li th:if="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/logout}" class="nav-link">Kijelentkezés</a>
+        </li>
+        <li th:unless="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/login}" class="nav-link">Bejelentkezés</a>
+        </li>
+        <li th:unless="${#authorization.expression('isAuthenticated()')}">
+          <a th:href="@{/register}" class="nav-link">Regisztráció</a>
+        </li>
+        <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+          <a th:href="@{/admin/products}" class="nav-link">Admin Termékek</a>
+        </li>
+        <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+          <a th:href="@{/admin/users}" class="nav-link">Admin Felhasználók</a>
+        </li>
+        <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+          <a th:href="@{/admin/orders}" class="nav-link">Admin Rendelések</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div layout:fragment="content" class="flex-grow">
+  <!-- Az egyes oldalak ide illesztik be a fő tartalmukat -->
+</div>
+
+<footer class="bg-gray-800 text-white p-6 mt-12 text-center shadow-inner">
+  <div class="container mx-auto text-sm">
+    <p>&copy; <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2024</span> Cyberpajzs Webshop. Minden jog fenntartva.</p>
+    <p class="mt-2">Kapcsolat: info@cyberpajzs.hu</p>
+  </div>
+</footer>
+
+<th:block layout:fragment="scripts-extra"></th:block>
+
+</body>
+</html>

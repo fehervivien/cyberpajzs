@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+<head>
+    <title th:text="'Termékek'"></title>
+</head>
+<body>
+
+<div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow">
+    <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Termékeink</h1>
+
+    <div class="mb-8 p-6 bg-white rounded-lg shadow-md">
+        <form th:action="@{/}" method="get" class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="Keresés név vagy leírás alapján..."
+                   class="w-full md:w-2/3 p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <button type="submit" class="w-full md:w-1/3 bg-blue-600 text-white font-bold py-3 px-6 rounded-md shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                Keresés
+            </button>
+        </form>
+    </div>
+
+    <div th:if="${products != null and not products.empty}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div th:each="product : ${products}" class="bg-white rounded-lg shadow-xl overflow-hidden transform hover:scale-105 transition duration-300">
+            <a th:href="@{/product-details/{id}(id=${product.id})}">
+                <img class="w-full h-48 object-cover" th:src="${product.imageUrl ?: 'https://placehold.co/600x400/a8e0f9/2a2a2a?text=Termek_kep'}"
+                     alt="Termék kép" onerror="this.onerror=null;this.src='https://placehold.co/600x400/a8e0f9/2a2a2a?text=Hiba_Nincs_Kep';">
+            </a>
+            <div class="p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2" th:text="${product.name}">Termék Neve</h2>
+                <p class="text-gray-600 mb-4 h-20 overflow-hidden" th:text="${product.description} ?: 'Nincs leírás'"></p>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-3xl font-extrabold text-blue-700" th:text="${#numbers.formatDecimal(product.price, 0, 'POINT', 0, 'COMMA') + ' Ft'}">9999 Ft</span>
+                    <span th:if="${product.stock > 0}" class="text-sm font-semibold text-green-600">Készleten: <span th:text="${product.stock}"></span></span>
+                    <span th:unless="${product.stock > 0}" class="text-sm font-semibold text-red-600">Elfogyott</span>
+                </div>
+                <a th:href="@{/product-details/{id}(id=${product.id})}" class="block w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-md text-center hover:bg-blue-600 transition duration-300">
+                    Részletek megtekintése
+                </a>
+            </div>
+        </div>
+    </div>
+    <div th:unless="${products != null and not products.empty}" class="text-center text-gray-600 text-xl py-12 bg-white rounded-lg shadow-md">
+        <p>Nincs találat a keresésnek.</p>
+        <p class="mt-4 text-sm">Próbáljon más keresőszót, vagy <a th:href="@{/}" class="text-blue-500 hover:underline">tekintse meg az összes terméket</a>.</p>
+    </div>
+</div>
+
+</body>
+</html>
