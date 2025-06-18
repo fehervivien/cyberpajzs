@@ -3,19 +3,18 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{base}">
 <head>
-  <title th:text="'Admin - Rendelés Részletei'"></title>
+  <title th:text="'Rendelés Részletei'"></title>
 </head>
 <body>
 
 <div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow">
-  <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Rendelés Részletei (Admin)</h1>
+  <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Rendelés Részletei</h1>
 
   <div th:if="${order != null}" class="bg-white rounded-lg shadow-xl p-6 md:p-8 lg:p-10">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
         <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Rendelés Információk</h2>
         <p class="text-gray-700 mb-2"><strong>Rendelés ID:</strong> <span th:text="${order.id}"></span></p>
-        <p class="text-gray-700 mb-2"><strong>Felhasználó:</strong> <span th:text="${order.user.username}"></span> (<span th:text="${order.user.email}"></span>)</p>
         <p class="text-gray-700 mb-2"><strong>Dátum:</strong> <span th:text="${#temporals.format(order.orderDate, 'yyyy.MM.dd HH:mm')}"></span></p>
         <p class="text-gray-700 mb-2"><strong>Összeg:</strong> <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span></p>
         <p class="text-gray-700 mb-2"><strong>Státusz:</strong> <span th:classappend="${order.status == 'COMPLETED' ? 'bg-green-100 text-green-800' : (order.status == 'PENDING' ? 'bg-yellow-100 text-yellow-800' : (order.status == 'CANCELLED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'))}"
@@ -61,24 +60,9 @@
           Nincsenek licenckulcsok rendelve ehhez a rendeléshez.
         </div>
 
-        <h3 class="text-xl font-bold text-gray-800 mt-6 mb-4 border-b pb-2">Rendelés Státusz Módosítása</h3>
-        <form th:action="@{/admin/orders/update-status/{orderId}(orderId=${order.id})}" method="post" class="flex flex-col sm:flex-row gap-4 items-end">
-          <div>
-            <label for="status" class="block text-gray-700 text-sm font-bold mb-2">Új státusz:</label>
-            <select id="status" name="newStatus" class="shadow appearance-none border rounded-md py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option th:each="s : ${allOrderStatuses}" th:value="${s}" th:text="${s}" th:selected="${s == order.status}">PENDING</option>
-            </select>
-          </div>
-          <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 transform hover:scale-105">
-            Státusz frissítése
-          </button>
-        </form>
-        <div th:if="${param.statusSuccess}" class="text-green-700 text-sm mt-2" th:text="${param.statusSuccess}"></div>
-        <div th:if="${param.statusError}" class="text-red-700 text-sm mt-2" th:text="${param.statusError}"></div>
-
         <div class="mt-8 text-center">
-          <a th:href="@{/admin/orders}" class="inline-block bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 transform hover:scale-105">
-            Vissza az összes rendeléshez
+          <a th:href="@{/orders}" class="inline-block bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 transform hover:scale-105">
+            Vissza a rendeléseimhez
           </a>
         </div>
       </div>
@@ -86,9 +70,9 @@
   </div>
   <div th:unless="${order != null}" class="text-center text-gray-600 text-xl py-12 bg-white rounded-lg shadow-md">
     <p>A megtekinteni kívánt rendelés nem található.</p>
-    <a th:href="@{/admin/orders}" class="mt-8 inline-block bg-blue-500 text-white py-3 px-6 rounded-md hover:bg-blue-600 transition duration-300">Vissza az összes rendeléshez</a>
+    <a th:href="@{/orders}" class="mt-8 inline-block bg-blue-500 text-white py-3 px-6 rounded-md hover:bg-blue-600 transition duration-300">Vissza a rendeléseimhez</a>
   </div>
 </div>
 
 </body>
-</html
+</html>

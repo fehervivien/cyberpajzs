@@ -23,20 +23,26 @@ public class SecurityConfig {
     ) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
+                        // Engedélyezz minden statikus erőforrást
                         .requestMatchers(
                                 "/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico",
-                                "/style.css"
+                                "/**"
                         ).permitAll()
+                        // Útvonalak, amelyekhez nem kell bejelentkezés
                         .requestMatchers(
                                 "/",
                                 "/product-list",
                                 "/product-details/**",
                                 "/cart/**",
                                 "/login",
-                                "/register"
+                                "/register",
+                                "/checkout",
+                                "/checkout/place-order",
+                                "/order-confirmation",
+                                "/request-quote/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/checkout/**").authenticated()
+                        // Minden más útvonalhoz továbbra is kell bejelentkezés
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -51,7 +57,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // CSRF kikapcsolva egyszerűség kedvéért fejlesztés alatt
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 );

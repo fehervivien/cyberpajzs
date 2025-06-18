@@ -38,7 +38,7 @@
         </div>
 
         <div class="lg:w-1/2">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Szállítási és Számlázási Adatok</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Számlázási és Szállítási Adatok</h2>
 
             <div th:if="${param.error}" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert">
                 <p class="font-bold">Hiba a megrendelés során!</p>
@@ -46,6 +46,36 @@
             </div>
 
             <form th:action="@{/checkout/place-order}" method="post" class="space-y-6">
+                <!-- Megrendelés típusa -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Megrendelés típusa:</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="radio" id="privatePerson" name="orderType" value="PRIVATE_PERSON" checked
+                               class="form-radio text-blue-600 h-5 w-5 cursor-pointer">
+                        <label for="privatePerson" class="text-gray-700">Magánszemély</label>
+
+                        <input type="radio" id="company" name="orderType" value="COMPANY"
+                               class="form-radio text-blue-600 h-5 w-5 cursor-pointer">
+                        <label for="company" class="text-gray-700">Cég</label>
+                    </div>
+                </div>
+
+                <!-- Cégnév és Adószám mezők (kezdetben rejtett) -->
+                <div id="companyFields" class="space-y-6 hidden">
+                    <div>
+                        <label for="companyName" class="block text-gray-700 text-sm font-bold mb-2">Cégnév:</label>
+                        <input type="text" id="companyName" name="companyName" placeholder="Cég neve"
+                               class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="taxNumber" class="block text-gray-700 text-sm font-bold mb-2">Adószám:</label>
+                        <input type="text" id="taxNumber" name="taxNumber" placeholder="Adószám"
+                               class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Személyes / Számlázási adatok (mindig látható) -->
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Személyes adatok / Kapcsolattartó adatai</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="firstName" class="block text-gray-700 text-sm font-bold mb-2">Vezetéknév:</label>
@@ -68,6 +98,8 @@
                     <input type="tel" id="phone" name="phone" placeholder="+36 XX XXX XXXX"
                            class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
+
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Szállítási cím</h3>
                 <div>
                     <label for="address" class="block text-gray-700 text-sm font-bold mb-2">Cím (utca, házszám):</label>
                     <input type="text" id="address" name="address" placeholder="Pl. Fő utca 10." required
@@ -99,6 +131,40 @@
         </div>
     </div>
 </div>
+
+<th:block layout:fragment="scripts-extra">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const orderTypeRadios = document.querySelectorAll('input[name="orderType"]');
+            const companyFields = document.getElementById('companyFields');
+            const taxNumberInput = document.getElementById('taxNumber');
+            const companyNameInput = document.getElementById('companyName');
+
+            function toggleCompanyFields() {
+                if (document.getElementById('company').checked) {
+                    companyFields.classList.remove('hidden');
+                    taxNumberInput.setAttribute('required', 'required');
+                    companyNameInput.setAttribute('required', 'required');
+                } else {
+                    companyFields.classList.add('hidden');
+                    taxNumberInput.removeAttribute('required');
+                    companyNameInput.removeAttribute('required');
+                    // Töröljük az értékeket, ha elrejtjük a mezőket
+                    taxNumberInput.value = '';
+                    companyNameInput.value = '';
+                }
+            }
+
+            // Eseményfigyelők hozzáadása a rádiógombokhoz
+            orderTypeRadios.forEach(radio => {
+                radio.addEventListener('change', toggleCompanyFields);
+            });
+
+            // Kezdeti állapot beállítása az oldal betöltésekor
+            toggleCompanyFields();
+        });
+    </script>
+</th:block>
 
 </body>
 </html>

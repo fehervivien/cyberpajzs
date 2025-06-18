@@ -4,6 +4,16 @@ tree /F /A
 mvn clean install -X > full_log.txt 2>&1
 mvn clean install -U -X > full_log.txt 2>&1
 
+weboldal elérés:
+http://localhost:8080/
+
+h2 adatbázis:
+http://localhost:8080/h2-console
+JDBC URL: jdbc:h2:file:./data/cyberpajzsdb
+felhasználónév:sa
+jelszó: -üres-
+adatbázis fájl: data/cyberpajzsdb.mv.db
+
 Ezek az ftp adatok:
 Szerver név
 s58.tarhely.com

@@ -1,0 +1,23 @@
+A /product details hibásan fut le - árajánlat kérés feladat (Quote osztályok)
+
+
+
+
+
+
+
+Ütemezés 
+Design
+Termék kategóriák 
+Termék oldalak
+Hirek
+Információ 
+!!!!Árajánlat kérése -> kapcsolat
+Rólunk, adatvédelmi szabályzat, stb
+Fb profil 
+Hol hirdessük?
+
+Első ütem:
+termékek fenn vannak, árakkal, lehet árajánlatot kérni.
+2. ütem:
+online fizetés

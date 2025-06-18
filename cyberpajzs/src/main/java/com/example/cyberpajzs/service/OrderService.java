@@ -3,6 +3,7 @@ package com.example.cyberpajzs.service;
 import com.example.cyberpajzs.entity.CartItem;
 import com.example.cyberpajzs.entity.Order;
 import com.example.cyberpajzs.entity.OrderItem;
+import com.example.cyberpajzs.entity.OrderType;
 import com.example.cyberpajzs.entity.User;
 import com.example.cyberpajzs.repository.OrderItemRepository;
 import com.example.cyberpajzs.repository.OrderRepository;
@@ -32,7 +33,11 @@ public class OrderService {
     }
 
     @Transactional
-    public Order placeOrder(User user, String firstName, String lastName, String email, String phone,
+    public Order placeOrder(User user, // lehet NULL
+                            OrderType orderType,
+                            String companyName,
+                            String taxNumber,
+                            String firstName, String lastName, String email, String phone,
                             String address, String city, String zipCode, String country) {
 
         List<CartItem> cartItems = cartService.getCartItems();
@@ -41,9 +46,14 @@ public class OrderService {
         }
 
         Order order = new Order();
+        // lehet NULL
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
         order.setStatus("PENDING");
+
+        order.setOrderType(orderType);
+        order.setCompanyName(companyName);
+        order.setTaxNumber(taxNumber);
 
         order.setFirstName(firstName);
         order.setLastName(lastName);
@@ -68,9 +78,10 @@ public class OrderService {
             totalAmount = totalAmount.add(orderItem.getPriceAtOrder().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
 
             for (int i = 0; i < cartItem.getQuantity(); i++) {
+                // A licencet továbbra is hozzárendeljük a userhez, ha van, egyébként null lesz
                 licenseService.assignLicenseToUser(
                         cartItem.getProduct(),
-                        user,
+                        user, // lehet null
                         orderItem,
                         LocalDateTime.now()
                 );
@@ -88,6 +99,7 @@ public class OrderService {
     }
 
     public List<Order> getUserOrders(User user) {
+        // Ez a metódus csak bejelentkezett felhasználókhoz tartozó rendeléseket tudja lekérni
         return orderRepository.findByUser(user);
     }
 
@@ -99,11 +111,11 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    // Rendelés státuszának frissítése
     @Transactional
     public void updateOrderStatus(Long orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Rendelés nem található ID: " + orderId));
+
         order.setStatus(newStatus);
         orderRepository.save(order);
     }
