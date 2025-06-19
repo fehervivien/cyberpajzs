@@ -5,19 +5,20 @@ import com.example.cyberpajzs.entity.Order;
 import com.example.cyberpajzs.entity.OrderItem;
 import com.example.cyberpajzs.entity.OrderType;
 import com.example.cyberpajzs.entity.User;
-import com.example.cyberpajzs.entity.License; // Importálva a License entitást
+import com.example.cyberpajzs.entity.License;
 import com.example.cyberpajzs.repository.OrderItemRepository;
 import com.example.cyberpajzs.repository.OrderRepository;
-import com.example.cyberpajzs.repository.LicenseRepository; // Importálva a LicenseRepository-t
+import com.example.cyberpajzs.repository.LicenseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors; // Importálva a stream API-hoz
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -26,7 +27,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartService cartService;
     private final LicenseService licenseService;
-    private final LicenseRepository licenseRepository; // Hozzáadva
+    private final LicenseRepository licenseRepository;
 
     public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
                         CartService cartService, LicenseService licenseService, LicenseRepository licenseRepository) {
@@ -34,7 +35,7 @@ public class OrderService {
         this.orderItemRepository = orderItemRepository;
         this.cartService = cartService;
         this.licenseService = licenseService;
-        this.licenseRepository = licenseRepository; // Inicializálás
+        this.licenseRepository = licenseRepository;
     }
 
     @Transactional
@@ -43,9 +44,10 @@ public class OrderService {
                             String companyName,
                             String taxNumber,
                             String firstName, String lastName, String email, String phone,
-                            String address, String city, String zipCode, String country) {
+                            String address, String city, String zipCode, String country,
+                            HttpSession session) {
 
-        List<CartItem> cartItems = cartService.getCartItems();
+        List<CartItem> cartItems = cartService.getCartItems(user, session);
         if (cartItems.isEmpty()) {
             throw new IllegalStateException("A kosár üres, nem lehet megrendelést leadni.");
         }
@@ -76,18 +78,21 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPriceAtOrder(cartItem.getProduct().getPrice());
+            orderItem.setPriceAtOrder(cartItem.getPriceAtOrder());
 
             orderItems.add(orderItem);
             totalAmount = totalAmount.add(orderItem.getPriceAtOrder().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
 
-            for (int i = 0; i < cartItem.getQuantity(); i++) {
-                licenseService.assignLicenseToUser(
-                        cartItem.getProduct(),
-                        user,
-                        orderItem,
-                        LocalDateTime.now()
-                );
+            // Licenc hozzárendelése
+            if (user != null) {
+                for (int i = 0; i < cartItem.getQuantity(); i++) {
+                    licenseService.assignLicenseToUser(
+                            cartItem.getProduct(),
+                            user,
+                            orderItem,
+                            LocalDateTime.now()
+                    );
+                }
             }
         }
 
@@ -96,7 +101,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        cartService.clearCart();
+        cartService.clearCart(user, session);
 
         return savedOrder;
     }

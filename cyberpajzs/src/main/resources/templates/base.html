@@ -20,7 +20,7 @@
         <li><a th:href="@{/}" class="nav-link">Termékek</a></li>
         <li><a th:href="@{/cart}" class="nav-link">Kosár</a></li>
         <li><a th:href="@{/about}" class="nav-link">Rólunk</a></li>
-        <li><a th:href="@{/news}" class="nav-link">Hírek</a></li> <!-- ÚJ SOR: Hírek menüpont -->
+        <li><a th:href="@{/news}" class="nav-link">Hírek</a></li>
         <li sec:authorize="isAuthenticated()">
           <a th:href="@{/orders}" class="nav-link">Rendeléseim</a>
         </li>
@@ -63,7 +63,8 @@
   <p th:text="${error}"></p>
 </div>
 
-<div layout:fragment="content" class="flex-grow">
+<!-- FŐ TARTALOM BLOKK -->
+<div layout:fragment="content" class="flex-grow w-full"> <!-- ITT A VÁLTOZÁS: w-full hozzáadva -->
   <!-- Az egyes oldalak ide illesztik be a fő tartalmukat -->
 </div>
 

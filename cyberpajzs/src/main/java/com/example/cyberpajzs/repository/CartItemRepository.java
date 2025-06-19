@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     Optional<CartItem> findByUserAndProduct(User user, Product product);
     List<CartItem> findByUser(User user);
-    //Kosár elemek törlése felhasználó alapján
     void deleteByUser(User user);
+    // Kosárelem törlése felhasználó és termék alapján
+    void deleteByUserAndProduct(User user, Product product);
 }

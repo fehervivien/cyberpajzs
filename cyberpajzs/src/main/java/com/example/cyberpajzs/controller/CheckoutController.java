@@ -1,11 +1,11 @@
 package com.example.cyberpajzs.controller;
 
+import com.example.cyberpajzs.entity.Order;
 import com.example.cyberpajzs.entity.OrderType;
 import com.example.cyberpajzs.entity.User;
 import com.example.cyberpajzs.service.CartService;
 import com.example.cyberpajzs.service.OrderService;
 import com.example.cyberpajzs.service.UserService;
-import org.springframework.security.authentication.AnonymousAuthenticationToken; // Importálva
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import jakarta.servlet.http.HttpSession;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Controller
@@ -30,27 +32,35 @@ public class CheckoutController {
         this.userService = userService;
     }
 
-    @GetMapping("/checkout")
-    public String showCheckout(Model model, RedirectAttributes redirectAttributes) {
-        if (cartService.getCartItems().isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "A kosarad üres. Nincs mit megrendelni.");
-            return "redirect:/cart";
-        }
-
+    // Segédmetódus a felhasználó lekéréséhez
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = null;
-
-        // Ellenőrizzük, hogy a felhasználó be van-e jelentkezve (nem anonim)
-        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
-            String username = authentication.getName();
-            Optional<User> currentUserOptional = userService.findUserByUsername(username);
-            currentUser = currentUserOptional.orElse(null); // Ha valamiért nem található, akkor is null
+        String username = authentication.getName();
+        if (username.equals("anonymousUser")) {
+            return null;
         }
-        // Ha be van jelentkezve, előtöltjük az adatait, különben üres User objektum
-        model.addAttribute("user", currentUser != null ? currentUser : new User());
+        return userService.findUserByUsername(username).orElse(null);
+    }
 
-        model.addAttribute("cartItems", cartService.getCartItems());
-        model.addAttribute("cartTotal", cartService.calculateCartTotal());
+    @GetMapping("/checkout")
+    public String showCheckout(Model model, HttpSession session) {
+        User currentUser = getCurrentUser(); // Felhasználó lekérése
+
+        model.addAttribute("cartItems", cartService.getCartItems(currentUser, session));
+        model.addAttribute("cartTotal", cartService.calculateCartTotal(currentUser, session));
+        model.addAttribute("orderTypes", OrderType.values());
+
+        // Ha be van jelentkezve, töltsük ki a felhasználó adataival az űrlapot
+        if (currentUser != null) {
+            model.addAttribute("firstName", currentUser.getFirstName());
+            model.addAttribute("lastName", currentUser.getLastName());
+            model.addAttribute("email", currentUser.getEmail());
+            model.addAttribute("phone", currentUser.getPhone());
+            model.addAttribute("address", currentUser.getAddress());
+            model.addAttribute("city", currentUser.getCity());
+            model.addAttribute("zipCode", currentUser.getZipCode());
+            model.addAttribute("country", currentUser.getCountry());
+        }
 
         return "checkout";
     }
@@ -62,58 +72,36 @@ public class CheckoutController {
                              @RequestParam String firstName,
                              @RequestParam String lastName,
                              @RequestParam String email,
-                             @RequestParam(required = false) String phone,
+                             @RequestParam String phone,
                              @RequestParam String address,
                              @RequestParam String city,
                              @RequestParam String zipCode,
                              @RequestParam String country,
-                             RedirectAttributes redirectAttributes) {
+                             RedirectAttributes redirectAttributes,
+                             HttpSession session) {
 
-        User currentUser = null;
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentUser(); // Felhasználó lekérése (lehet NULL vendég esetén)
 
-        // Ha a felhasználó be van jelentkezve (nem anonim), akkor lekérjük az User objektumát
-        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
-            String username = authentication.getName();
-            currentUser = userService.findUserByUsername(username).orElse(null);
-        }
+        // ITT NINCS MÁR KIKÉNYSZERÍTVE A BEJELENTKEZÉS
 
         try {
-            // Validáció céges vásárlás esetén
-            if (OrderType.COMPANY.name().equals(orderType)) {
-                if (companyName == null || companyName.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Céges vásárlás esetén a cégnév megadása kötelező.");
-                }
-                if (taxNumber == null || taxNumber.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Céges vásárlás esetén az adószám megadása kötelező.");
-                }
-            }
-
-            orderService.placeOrder(
-                    //lehet null, ha a felhasználó nincs bejelentkezve
-                    currentUser,
-                    OrderType.valueOf(orderType),
+            OrderType selectedOrderType = OrderType.valueOf(orderType.toUpperCase());
+            Order order = orderService.placeOrder(
+                    currentUser, // Átadjuk a felhasználót (lehet null)
+                    selectedOrderType,
                     companyName,
                     taxNumber,
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    address,
-                    city,
-                    zipCode,
-                    country
+                    firstName, lastName, email, phone,
+                    address, city, zipCode, country,
+                    session
             );
-            redirectAttributes.addFlashAttribute("success", "Sikeresen leadtad a megrendelésedet!");
+            redirectAttributes.addFlashAttribute("success", "Rendelésedet sikeresen leadtuk! Rendelés ID: " + order.getId());
             return "redirect:/order-confirmation";
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/checkout";
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/checkout";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Ismeretlen hiba történt a megrendelés leadásakor: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a rendelés feldolgozása során.");
             return "redirect:/checkout";
         }
     }

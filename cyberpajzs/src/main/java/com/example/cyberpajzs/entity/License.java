@@ -2,7 +2,6 @@ package com.example.cyberpajzs.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 public class License {
@@ -11,6 +10,7 @@ public class License {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String licenseKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -18,21 +18,25 @@ public class License {
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = true) // Lehet NULL, ha még nincs hozzárendelve
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_item_id")
+    @JoinColumn(name = "order_item_id", nullable = true) // Lehet NULL, ha még nincs hozzárendelve
     private OrderItem orderItem;
 
-    private LocalDateTime issueDate;
-    private LocalDateTime expiryDate;
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private LicenseStatus status; // UNASSIGNED, ASSIGNED, EXPIRED, REVOKED
 
+    @Column(nullable = true) // Dátum, amikor a licencet kiadták a felhasználónak
+    private LocalDateTime issueDate;
+
+    // Konstruktorok
     public License() {
-        this.licenseKey = UUID.randomUUID().toString();
-        this.status = "AVAILABLE";
     }
+
+    // Getters and Setters
 
     public Long getId() {
         return id;
@@ -74,27 +78,19 @@ public class License {
         this.orderItem = orderItem;
     }
 
+    public LicenseStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(LicenseStatus status) {
+        this.status = status;
+    }
+
     public LocalDateTime getIssueDate() {
         return issueDate;
     }
 
     public void setIssueDate(LocalDateTime issueDate) {
         this.issueDate = issueDate;
-    }
-
-    public LocalDateTime getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(LocalDateTime expiryDate) {
-        this.expiryDate = expiryDate;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 }

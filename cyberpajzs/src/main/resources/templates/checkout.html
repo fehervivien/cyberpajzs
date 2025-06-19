@@ -1,70 +1,85 @@
 <!DOCTYPE html>
 <html lang="hu" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
       layout:decorate="~{base}">
 <head>
-    <title th:text="'Megrendelés'"></title>
+    <title>Pénztár</title>
 </head>
 <body>
 
 <div layout:fragment="content" class="container mx-auto mt-8 p-4 flex-grow">
-    <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Rendelés Véglegesítése</h1>
+    <div class="bg-white rounded-lg shadow-xl p-8 md:p-12 lg:p-16 w-full max-w-4xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Pénztár</h1>
 
-    <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 lg:p-10 flex flex-col lg:flex-row gap-8">
-        <div class="lg:w-1/2">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Rendelésed</h2>
-            <div th:if="${cartItems != null and not cartItems.empty}">
-                <div th:each="item : ${cartItems}" class="flex items-center justify-between border-b py-4">
-                    <div class="flex items-center">
-                        <img class="h-16 w-16 rounded-md object-cover mr-4" th:src="${item.product.imageUrl ?: 'https://placehold.co/100x100/a8e0f9/2a2a2a?text=Termek_kep'}"
-                             alt="Termék kép" onerror="this.onerror=null;this.src='https://placehold.co/100x100/a8e0f9/2a2a2a?text=Hiba_Nincs_Kep';">
-                        <div>
-                            <p class="text-lg font-semibold text-gray-900" th:text="${item.product.name}"></p>
-                            <p class="text-sm text-gray-600" th:text="${'Mennyiség: ' + item.quantity}"></p>
-                        </div>
-                    </div>
-                    <p class="text-lg font-bold text-gray-800" th:text="${#numbers.formatDecimal(item.subtotal, 0, 'POINT', 0, 'COMMA') + ' Ft'}">9999 Ft</p>
-                </div>
-
-                <div class="mt-6 pt-4 border-t flex justify-between items-center">
-                    <p class="text-2xl font-bold text-gray-800">Összesen:</p>
-                    <p class="text-3xl font-bold text-blue-700" th:text="${#numbers.formatDecimal(cartTotal, 0, 'POINT', 0, 'COMMA') + ' Ft'}">0 Ft</p>
-                </div>
-            </div>
-            <div th:unless="${cartItems != null and not cartItems.empty}" class="text-center text-gray-600 text-lg py-8">
-                <p>A kosarad üres. Nem lehet megrendelést leadni.</p>
-                <a th:href="@{/}" class="mt-4 inline-block bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">Vissza a termékekhez</a>
-            </div>
+        <div th:if="${success}" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-6" role="alert">
+            <p th:text="${success}"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6" role="alert">
+            <p th:text="${error}"></p>
         </div>
 
-        <div class="lg:w-1/2">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Számlázási és Szállítási Adatok</h2>
+        <div th:if="${cartItems.empty}" class="text-center text-gray-600 text-lg py-12">
+            <p>A kosár üres. Kérjük, adjon hozzá termékeket a pénztár folytatásához.</p>
+            <p class="mt-4"><a th:href="@{/product-list}" class="text-blue-600 hover:underline">Vásárlás folytatása</a></p>
+        </div>
 
-            <div th:if="${param.error}" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert">
-                <p class="font-bold">Hiba a megrendelés során!</p>
-                <p class="text-sm" th:text="${param.error}">Ismeretlen hiba történt.</p>
+        <div th:unless="${cartItems.empty}">
+            <div sec:authorize="isAnonymous()" class="bg-blue-100 border border-blue-400 text-blue-700 px-6 py-4 rounded-md mb-8 text-center">
+                <p class="text-lg font-semibold mb-3">Még nem jelentkezett be?</p>
+                <p class="mb-4">Folytathatja vendégként, vagy jelentkezzen be/regisztráljon a gyorsabb rendeléshez és a licencculcsok későbbi megtekintéséhez.</p>
+                <div class="flex justify-center gap-4">
+                    <a th:href="@{/login}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-md transition duration-300">Bejelentkezés</a>
+                    <a th:href="@{/register}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-md transition duration-300">Regisztráció</a>
+                </div>
             </div>
 
-            <form th:action="@{/checkout/place-order}" method="post" class="space-y-6">
-                <!-- Megrendelés típusa -->
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Megrendelés típusa:</label>
-                    <div class="flex items-center space-x-4">
-                        <input type="radio" id="privatePerson" name="orderType" value="PRIVATE_PERSON" checked
-                               class="form-radio text-blue-600 h-5 w-5 cursor-pointer">
-                        <label for="privatePerson" class="text-gray-700">Magánszemély</label>
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Kosár tartalma</h2>
+            <div class="overflow-x-auto mb-8">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Termék</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mennyiség</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Egységár</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Részösszeg</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:each="item : ${cartItems}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${item.product.name}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${item.quantity}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#numbers.formatDecimal(item.priceAtOrder, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                            <span th:text="${#numbers.formatDecimal(item.quantity * item.priceAtOrder, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                        <input type="radio" id="company" name="orderType" value="COMPANY"
-                               class="form-radio text-blue-600 h-5 w-5 cursor-pointer">
-                        <label for="company" class="text-gray-700">Cég</label>
-                    </div>
+            <div class="text-right text-xl font-bold text-gray-800 mb-8">
+                Összesen: <span th:text="${#numbers.formatDecimal(cartTotal, 0, 'POINT', 0, 'COMMA') + ' Ft'}"></span>
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Számlázási és Szállítási Adatok</h2>
+            <form th:action="@{/checkout/place-order}" method="post" class="space-y-6">
+                <div>
+                    <label for="orderType" class="block text-gray-700 text-sm font-bold mb-2">Rendelés típusa:</label>
+                    <select id="orderType" name="orderType"
+                            class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            onchange="toggleCompanyFields()">
+                        <option th:each="type : ${orderTypes}"
+                                th:value="${type}"
+                                th:text="${type.displayName}">Személyes</option>
+                    </select>
                 </div>
 
-                <!-- Cégnév és Adószám mezők (kezdetben rejtett) -->
-                <div id="companyFields" class="space-y-6 hidden">
+                <!-- Céges adatok (alapértelmezetten rejtett) -->
+                <div id="companyFields" style="display: none;" class="space-y-6">
                     <div>
                         <label for="companyName" class="block text-gray-700 text-sm font-bold mb-2">Cégnév:</label>
-                        <input type="text" id="companyName" name="companyName" placeholder="Cég neve"
+                        <input type="text" id="companyName" name="companyName" placeholder="Cégnév"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>
@@ -74,97 +89,94 @@
                     </div>
                 </div>
 
-                <!-- Személyes / Számlázási adatok (mindig látható) -->
-                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Személyes adatok / Kapcsolattartó adatai</h3>
+                <!-- Személyes adatok -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="firstName" class="block text-gray-700 text-sm font-bold mb-2">Vezetéknév:</label>
-                        <input type="text" id="firstName" name="firstName" th:value="${user.firstName}" required
+                        <input type="text" id="firstName" name="firstName" placeholder="Vezetékneved" required
+                               th:value="${firstName}"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>
                         <label for="lastName" class="block text-gray-700 text-sm font-bold mb-2">Keresztnév:</label>
-                        <input type="text" id="lastName" name="lastName" th:value="${user.lastName}" required
+                        <input type="text" id="lastName" name="lastName" placeholder="Keresztneved" required
+                               th:value="${lastName}"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
+
                 <div>
                     <label for="email" class="block text-gray-700 text-sm font-bold mb-2">E-mail cím:</label>
-                    <input type="email" id="email" name="email" th:value="${user.email}" required
-                           class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label for="phone" class="block text-gray-700 text-sm font-bold mb-2">Telefonszám (opcionális):</label>
-                    <input type="tel" id="phone" name="phone" placeholder="+36 XX XXX XXXX"
+                    <input type="email" id="email" name="email" placeholder="email@pelda.com" required
+                           th:value="${email}"
                            class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
-                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Szállítási cím</h3>
                 <div>
-                    <label for="address" class="block text-gray-700 text-sm font-bold mb-2">Cím (utca, házszám):</label>
-                    <input type="text" id="address" name="address" placeholder="Pl. Fő utca 10." required
+                    <label for="phone" class="block text-gray-700 text-sm font-bold mb-2">Telefonszám:</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+36 XX XXX XXXX" required
+                           th:value="${phone}"
                            class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
+
+                <div>
+                    <label for="address" class="block text-gray-700 text-sm font-bold mb-2">Utca, házszám:</label>
+                    <input type="text" id="address" name="address" placeholder="Utca 12." required
+                           th:value="${address}"
+                           class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label for="city" class="block text-gray-700 text-sm font-bold mb-2">Város:</label>
-                        <input type="text" id="city" name="city" placeholder="Pl. Budapest" required
+                        <input type="text" id="city" name="city" placeholder="Város" required
+                               th:value="${city}"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>
                         <label for="zipCode" class="block text-gray-700 text-sm font-bold mb-2">Irányítószám:</label>
-                        <input type="text" id="zipCode" name="zipCode" placeholder="Pl. 1000" required
+                        <input type="text" id="zipCode" name="zipCode" placeholder="XXXX" required
+                               th:value="${zipCode}"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>
                         <label for="country" class="block text-gray-700 text-sm font-bold mb-2">Ország:</label>
-                        <input type="text" id="country" name="country" value="Magyarország" required
+                        <input type="text" id="country" name="country" placeholder="Ország" required
+                               th:value="${country}"
                                class="shadow appearance-none border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
 
-                <button type="submit" th:if="${cartItems != null and not cartItems.empty}"
-                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md focus:outline-none focus:shadow-outline transition duration-300 text-xl">
-                    Megrendelés Elküldése
-                </button>
+                <div class="flex justify-end mt-8">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-md shadow-lg transition duration-300 transform hover:scale-105">
+                        Rendelés leadása
+                    </button>
+                </div>
             </form>
         </div>
     </div>
-</div>
 
-<th:block layout:fragment="scripts-extra">
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const orderTypeRadios = document.querySelectorAll('input[name="orderType"]');
-            const companyFields = document.getElementById('companyFields');
-            const taxNumberInput = document.getElementById('taxNumber');
-            const companyNameInput = document.getElementById('companyName');
-
+    <th:block layout:fragment="scripts-extra">
+        <script th:inline="javascript">
+            /*<![CDATA[*/
             function toggleCompanyFields() {
-                if (document.getElementById('company').checked) {
-                    companyFields.classList.remove('hidden');
-                    taxNumberInput.setAttribute('required', 'required');
-                    companyNameInput.setAttribute('required', 'required');
+                var orderType = document.getElementById('orderType').value;
+                var companyFields = document.getElementById('companyFields');
+                if (orderType === 'BUSINESS') {
+                    companyFields.style.display = 'block';
+                    document.getElementById('companyName').setAttribute('required', 'required');
+                    document.getElementById('taxNumber').setAttribute('required', 'required');
                 } else {
-                    companyFields.classList.add('hidden');
-                    taxNumberInput.removeAttribute('required');
-                    companyNameInput.removeAttribute('required');
-                    // Töröljük az értékeket, ha elrejtjük a mezőket
-                    taxNumberInput.value = '';
-                    companyNameInput.value = '';
+                    companyFields.style.display = 'none';
+                    document.getElementById('companyName').removeAttribute('required');
+                    document.getElementById('taxNumber').removeAttribute('required');
                 }
             }
 
-            // Eseményfigyelők hozzáadása a rádiógombokhoz
-            orderTypeRadios.forEach(radio => {
-                radio.addEventListener('change', toggleCompanyFields);
-            });
-
-            // Kezdeti állapot beállítása az oldal betöltésekor
-            toggleCompanyFields();
-        });
-    </script>
-</th:block>
-
+            document.addEventListener('DOMContentLoaded', toggleCompanyFields);
+            /*]]>*/
+        </script>
+    </th:block>
+</div>
 </body>
 </html>
