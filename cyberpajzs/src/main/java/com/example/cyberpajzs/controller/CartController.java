@@ -1,58 +1,83 @@
 package com.example.cyberpajzs.controller;
 
 import com.example.cyberpajzs.service.CartService;
-import com.example.cyberpajzs.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class CartController {
 
     private final CartService cartService;
-    private final ProductService productService;
 
-    @Autowired
-    public CartController(CartService cartService, ProductService productService) {
+    public CartController(CartService cartService) {
         this.cartService = cartService;
-        this.productService = productService;
     }
 
     @GetMapping("/cart")
-    public String showCart(Model model) {
+    public String viewCart(Model model) {
         model.addAttribute("cartItems", cartService.getCartItems());
         model.addAttribute("cartTotal", cartService.calculateCartTotal());
-        return "cart"; // Fontos: Győződj meg róla, hogy a fájl pontosan cart-view.html!
+        return "cart";
     }
 
-    // Módosított addToCart metódus: @RequestParam-ot használ a productId-hez
-    @PostMapping("/cart/add") // <-- Itt változott: nincs {productId} a PATH-ban
-    public String addToCart(@RequestParam("productId") Long productId, // <-- Itt változott: @RequestParam
-                            @RequestParam(defaultValue = "1") int quantity) {
-        productService.findProductById(productId).ifPresent(product -> {
-            cartService.addProductToCart(product, quantity);
-        });
+    @PostMapping("/cart/add")
+    public String addProductToCart(@RequestParam("productId") Long productId,
+                                   @RequestParam("quantity") int quantity,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            cartService.addProductToCart(productId, quantity); // productId átadása
+            redirectAttributes.addFlashAttribute("success", "Termék hozzáadva a kosárhoz!");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a termék kosárhoz adásakor.");
+        }
+        // Átirányítás vissza a termék részletei oldalra
+        return "redirect:/product-details/" + productId;
+    }
+
+    @PostMapping("/cart/update")
+    public String updateCartItemQuantity(@RequestParam("productId") Long productId,
+                                         @RequestParam("newQuantity") int newQuantity,
+                                         RedirectAttributes redirectAttributes) {
+        try {
+            cartService.updateCartItemQuantity(productId, newQuantity);
+            redirectAttributes.addFlashAttribute("success", "Kosár frissítve!");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a kosár frissítésekor.");
+        }
         return "redirect:/cart";
     }
 
-    // A többi metódusod is módosulhat, ha az URL struktúra a controllerben path variable-t használ, de az űrlap request paramétert küld.
-    // Nézzük át az űrlapokat is (cart.html), de egyelőre ezt javítsuk!
-    @PostMapping("/cart/update") // <-- Valószínűleg itt is @RequestParam kellene
-    public String updateCartItemQuantity(@RequestParam("productId") Long productId, @RequestParam int quantity) {
-        // Mielőtt meghívnád a service-t, meg kell győződnöd, hogy a product létezik,
-        // és a service a productId-t használja. A service-edben lévő findByUserAndProductId metódus jó.
-        cartService.updateProductQuantity(productId, quantity);
+    @PostMapping("/cart/remove")
+    public String removeProductFromCart(@RequestParam("productId") Long productId,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            cartService.removeProductFromCart(productId);
+            redirectAttributes.addFlashAttribute("success", "Termék eltávolítva a kosárból.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a termék eltávolításakor.");
+        }
         return "redirect:/cart";
     }
 
-    @PostMapping("/cart/remove") // <-- Valószínűleg itt is @RequestParam kellene
-    public String removeCartItem(@RequestParam("productId") Long productId) {
-        cartService.removeProductFromCart(productId);
+    @PostMapping("/cart/clear")
+    public String clearCart(RedirectAttributes redirectAttributes) {
+        try {
+            cartService.clearCart();
+            redirectAttributes.addFlashAttribute("success", "A kosár kiürítve.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a kosár kiürítésekor.");
+        }
         return "redirect:/cart";
     }
-
 }

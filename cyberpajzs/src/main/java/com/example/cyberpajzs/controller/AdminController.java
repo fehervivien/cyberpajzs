@@ -1,25 +1,24 @@
 package com.example.cyberpajzs.controller;
 
 import com.example.cyberpajzs.entity.Product;
-import com.example.cyberpajzs.entity.Order;
 import com.example.cyberpajzs.entity.User;
+import com.example.cyberpajzs.entity.Order;
+import com.example.cyberpajzs.entity.OrderType;
 import com.example.cyberpajzs.service.ProductService;
 import com.example.cyberpajzs.service.UserService;
 import com.example.cyberpajzs.service.OrderService;
-import com.example.cyberpajzs.service.LicenseService; // Importálva a LicenseService
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Arrays;
 import java.util.Optional;
-import java.util.Set;
+
 
 @Controller
 @RequestMapping("/admin")
@@ -27,197 +26,161 @@ public class AdminController {
 
     private final ProductService productService;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
     private final OrderService orderService;
-    private final LicenseService licenseService; // Hozzáadva
 
-    @Autowired
-    public AdminController(ProductService productService, UserService userService,
-                           PasswordEncoder passwordEncoder, OrderService orderService,
-                           LicenseService licenseService) { // Konstruktor frissítése
+    public AdminController(ProductService productService, UserService userService, OrderService orderService) {
         this.productService = productService;
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
         this.orderService = orderService;
-        this.licenseService = licenseService; // Injektálás
     }
 
     // --- Termékkezelés ---
+
+    // Megjeleníti az összes termék listáját
     @GetMapping("/products")
-    public String showAdminProducts(Model model) {
+    public String adminProducts(Model model) {
         model.addAttribute("products", productService.findAllProducts());
-        if (!model.containsAttribute("product")) {
-            model.addAttribute("product", new Product());
-        }
-        model.addAttribute("hasLicenseInfoField", true);
-        return "admin/products";
+        return "admin/products"; // Az oldal, ami csak a listát mutatja
     }
 
+    // Megjeleníti az ÜRES űrlapot új termék hozzáadásához
+    @GetMapping("/products/new")
+    public String showAddProductForm(Model model) {
+        model.addAttribute("product", new Product()); // Üres termék objektum az űrlapnak
+        return "admin/product-form"; // Az új sablon fájl
+    }
+
+    // Megjeleníti a MEGLÉVŐ termék szerkesztő űrlapját
     @GetMapping("/products/edit/{id}")
-    public String editProduct(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Product> productOptional = productService.findProductById(id);
-        if (productOptional.isPresent()) {
-            model.addAttribute("product", productOptional.get());
-            model.addAttribute("products", productService.findAllProducts());
-            model.addAttribute("hasLicenseInfoField", true);
-            return "admin/products";
-        } else {
-            redirectAttributes.addFlashAttribute("error", "A termék nem található.");
-            return "redirect:/admin/products";
-        }
+    public String showEditProductForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        return productService.findProductById(id).map(product -> {
+            model.addAttribute("product", product);
+            return "admin/product-form"; // Az új sablon fájl
+        }).orElseGet(() -> {
+            redirectAttributes.addFlashAttribute("error", "Termék nem található ID: " + id);
+            return "redirect:/admin/products"; // Vissza a listára, ha nem található a termék
+        });
     }
 
+    // Termék mentése (új hozzáadása vagy meglévő frissítése)
     @PostMapping("/products")
-    public String saveOrUpdateProduct(@ModelAttribute Product product, RedirectAttributes redirectAttributes) {
+    public String saveProduct(@Valid @ModelAttribute("product") Product product, BindingResult bindingResult, Model model, RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            // Hiba esetén visszatérünk a form oldalra, a hibás adatokkal és üzenetekkel
+            // Nem kell újra betölteni a terméklistát, mert ez a product-form.html
+            return "admin/product-form";
+        }
         try {
             productService.saveProduct(product);
             redirectAttributes.addFlashAttribute("success", "Termék sikeresen mentve!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Hiba történt a termék mentésekor: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Hiba a termék mentésekor: " + e.getMessage());
         }
-        return "redirect:/admin/products";
+        return "redirect:/admin/products"; // Sikeres mentés után vissza a terméklistára
     }
 
     @PostMapping("/products/delete/{id}")
     public String deleteProduct(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            productService.deleteProductById(id);
+            productService.deleteProduct(id);
             redirectAttributes.addFlashAttribute("success", "Termék sikeresen törölve!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Hiba történt a termék törlésekor: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Hiba a termék törlésekor: " + e.getMessage());
         }
         return "redirect:/admin/products";
     }
 
-
     // --- Felhasználókezelés ---
     @GetMapping("/users")
-    public String showAdminUsers(Model model) {
+    public String adminUsers(Model model) {
         model.addAttribute("users", userService.findAllUsers());
+        // Új felhasználó hozzáadásához üres objektum
         if (!model.containsAttribute("userToEdit")) {
             model.addAttribute("userToEdit", new User());
         }
-        model.addAttribute("allRoles", Arrays.asList("ROLE_USER", "ROLE_ADMIN"));
+        model.addAttribute("allRoles", Arrays.asList("ROLE_USER", "ROLE_ADMIN")); // Minden lehetséges szerepkör
         return "admin/users";
     }
 
     @GetMapping("/users/edit/{id}")
     public String editUser(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<User> userOptional = userService.findUserById(id);
-        if (userOptional.isPresent()) {
-            model.addAttribute("userToEdit", userOptional.get());
-            model.addAttribute("users", userService.findAllUsers());
+        return userService.findUserById(id).map(user -> {
+            model.addAttribute("userToEdit", user);
+            model.addAttribute("users", userService.findAllUsers()); // Szükséges a lista megjelenítéséhez
             model.addAttribute("allRoles", Arrays.asList("ROLE_USER", "ROLE_ADMIN"));
             return "admin/users";
-        } else {
-            redirectAttributes.addFlashAttribute("error", "A felhasználó nem található.");
+        }).orElseGet(() -> {
+            redirectAttributes.addFlashAttribute("error", "Felhasználó nem található ID: " + id);
             return "redirect:/admin/users";
-        }
+        });
     }
 
     @PostMapping("/users")
-    public String saveOrUpdateUser(@ModelAttribute("userToEdit") User user,
-                                   @RequestParam(value = "password", required = false) String password,
-                                   @RequestParam(value = "roles", required = false) List<String> roles,
-                                   RedirectAttributes redirectAttributes) {
+    public String saveUser(@Valid @ModelAttribute("userToEdit") User user, BindingResult bindingResult, @RequestParam(value = "password", required = false) String password, @RequestParam(value = "roles", required = false) List<String> roles, Model model, RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("users", userService.findAllUsers()); // Újra betöltjük a listát
+            model.addAttribute("allRoles", Arrays.asList("ROLE_USER", "ROLE_ADMIN"));
+            return "admin/users"; // Hiba esetén visszatérünk az űrlapra
+        }
         try {
-            if (user.getId() == null) {
-                if (password == null || password.isEmpty()) {
-                    throw new IllegalArgumentException("Az új felhasználóhoz jelszó megadása kötelező.");
-                }
+            if (user.getId() == null) { // Új felhasználó
                 userService.registerNewUser(user.getUsername(), password, user.getEmail(), user.getFirstName(), user.getLastName());
-                if (roles != null) {
-                    User newUser = userService.findUserByUsername(user.getUsername())
-                            .orElseThrow(() -> new RuntimeException("Regisztrált felhasználó nem található."));
-                    Set<String> newRoles = new HashSet<>(roles);
-                    if (!newRoles.contains("ROLE_USER")) {
-                        newRoles.add("ROLE_USER");
-                    }
-                    newUser.setRoles(newRoles);
-                    userService.saveUser(newUser);
-                }
-
-                redirectAttributes.addFlashAttribute("success", "Felhasználó sikeresen hozzáadva!");
             } else {
-                User existingUser = userService.findUserById(user.getId())
-                        .orElseThrow(() -> new IllegalArgumentException("Felhasználó nem található ID: " + user.getId()));
-
-                existingUser.setEmail(user.getEmail());
-                existingUser.setFirstName(user.getFirstName());
-                existingUser.setLastName(user.getLastName());
-
-                if (password != null && !password.isEmpty()) {
-                    existingUser.setPassword(passwordEncoder.encode(password));
-                }
-
-                if (roles != null) {
-                    Set<String> newRoles = new HashSet<>(roles);
-                    if (!newRoles.contains("ROLE_USER")) {
-                        newRoles.add("ROLE_USER");
-                    }
-                    existingUser.setRoles(newRoles);
-                } else {
-                    existingUser.setRoles(new HashSet<>(Arrays.asList("ROLE_USER")));
-                }
-
-                userService.saveUser(existingUser);
-                redirectAttributes.addFlashAttribute("success", "Felhasználó sikeresen frissítve!");
+                userService.updateUser(user, password, roles);
             }
+            redirectAttributes.addFlashAttribute("success", "Felhasználó sikeresen mentve!");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
-            redirectAttributes.addFlashAttribute("userToEdit", user);
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Hiba történt a felhasználó mentésekor: " + e.getMessage());
-            redirectAttributes.addFlashAttribute("userToEdit", user);
+            model.addAttribute("users", userService.findAllUsers()); // Újra betöltjük a listát
+            model.addAttribute("allRoles", Arrays.asList("ROLE_USER", "ROLE_ADMIN"));
+            return "admin/users"; // Hiba esetén visszatérünk az űrlapra
         }
         return "redirect:/admin/users";
     }
+
 
     @PostMapping("/users/delete/{id}")
     public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            userService.deleteUserById(id);
+            userService.deleteUser(id);
             redirectAttributes.addFlashAttribute("success", "Felhasználó sikeresen törölve!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Hiba történt a felhasználó törlésekor: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Hiba a felhasználó törlésekor: " + e.getMessage());
         }
         return "redirect:/admin/users";
     }
 
-    // --- Rendeléskezelés ---
 
+    // --- Rendeléskezelés ---
     @GetMapping("/orders")
-    public String showAdminOrders(Model model) {
+    public String adminOrders(Model model) {
         model.addAttribute("orders", orderService.findAllOrders());
         return "admin/orders";
     }
 
     @GetMapping("/orders/{orderId}")
-    public String showAdminOrderDetails(@PathVariable Long orderId, Model model, RedirectAttributes redirectAttributes) {
+    public String adminOrderDetails(@PathVariable Long orderId, Model model, RedirectAttributes redirectAttributes) {
         Optional<Order> orderOptional = orderService.getOrderById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             model.addAttribute("order", order);
-            // Lekérjük a rendeléshez tartozó licenceket is
-            model.addAttribute("orderLicenses", licenseService.getLicensesByOrderItem(order.getOrderItems())); // Ezt a metódust hozzáadjuk a LicenseService-be
-            model.addAttribute("allOrderStatuses", Arrays.asList("PENDING", "COMPLETED", "CANCELLED")); // Rendelés státuszok
+            model.addAttribute("orderLicenses", orderService.getLicensesByOrderItem(order.getOrderItems()));
+            model.addAttribute("allOrderStatuses", Arrays.asList("PENDING", "COMPLETED", "CANCELLED")); // Rendelés státuszok enum
             return "admin/order-details";
         } else {
-            redirectAttributes.addFlashAttribute("error", "A rendelés nem található.");
+            redirectAttributes.addFlashAttribute("error", "Rendelés nem található ID: " + orderId);
             return "redirect:/admin/orders";
         }
     }
 
     @PostMapping("/orders/update-status/{orderId}")
-    public String updateOrderStatus(@PathVariable Long orderId,
-                                    @RequestParam String newStatus,
-                                    RedirectAttributes redirectAttributes) {
+    public String updateOrderStatus(@PathVariable Long orderId, @RequestParam String newStatus, RedirectAttributes redirectAttributes) {
         try {
-            orderService.updateOrderStatus(orderId, newStatus); // Ezt a metódust hozzáadjuk az OrderService-be
+            orderService.updateOrderStatus(orderId, newStatus);
             redirectAttributes.addFlashAttribute("statusSuccess", "Rendelés státusza sikeresen frissítve!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("statusError", "Hiba történt a státusz frissítésekor: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("statusError", e.getMessage());
         }
-        return "redirect:/admin/orders/" + orderId; // Vissza az adott rendelés részleteihez
+        return "redirect:/admin/orders/" + orderId;
     }
 }

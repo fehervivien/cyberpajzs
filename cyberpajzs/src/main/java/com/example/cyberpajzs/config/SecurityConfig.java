@@ -39,8 +39,16 @@ public class SecurityConfig {
                                 "/checkout",
                                 "/checkout/place-order",
                                 "/order-confirmation",
-                                "/request-quote/**"
+                                "/request-quote/**",
+                                "/newsletter/subscribe",
+                                "/about",
+                                "/news",
+                                "/news/**"
                         ).permitAll()
+                        // Útvonalak, amelyekhez bejelentkezés kell
+                        .requestMatchers(
+                                "/profile"
+                        ).authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Minden más útvonalhoz továbbra is kell bejelentkezés
                         .anyRequest().authenticated()
@@ -57,7 +65,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                .csrf(csrf -> csrf.disable()) // CSRF kikapcsolva egyszerűség kedvéért fejlesztés alatt
+                .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 );

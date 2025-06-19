@@ -1,23 +1,29 @@
-A /product details hibásan fut le - árajánlat kérés feladat (Quote osztályok)
+				Cyberpajzs webshop
 
+Tulajdonságok: 
+	Design: a menü elrendezése ---
+		vásárló kosár ikon: https://tailwindcss.com/plus/ui-			                            blocks/ecommerce/components/store-					    navigation
+		nagyító ikon a keresésnek: https://tailwindcss.com/plus/ui-					blocks/ecommerce/components/store-					navigation
+		felhasználó fiók ikon: https://tailwindcss.com/plus/ui-					       blocks/ecommerce/components/store-				       navigation
+	Termék kategóriák ---
+	Árajánlat kérése +++
+	Termék oldalak +++
+	Termék rendelése -> lementett képhez hasonló legyen
+	Hirek ---
+	Információ ?
+	Árajánlat kérése -> kapcsolat +++
+	Rólunk, ---
+	adatvédelmi szabályzat, stb ---
+	online fizetés (paypal,google,simplepay) --- 
 
+Marketig:
+	Fb profil 
+	Hol hirdessük? (pl. Google kereső)
 
+Szerver, adatbázis:
+- Adatbázis konfiguráció éles környezetben (pl. MySQL, PostgreSQL, stb. beállítása)
+- Adatbázis migrációk (Flyway, Liquibase használata)
+- Szerver telepítés (pl. JAR futtatása, Docker konténerizáció, felhőszolgáltatók - AWS, Azure, Google Cloud - használata)
+- Spring Security éles környezetben (pl. HTTPS beállítása, CSRF engedélyezése)
 
-
-
-
-Ütemezés 
-Design
-Termék kategóriák 
-Termék oldalak
-Hirek
-Információ 
-!!!!Árajánlat kérése -> kapcsolat
-Rólunk, adatvédelmi szabályzat, stb
-Fb profil 
-Hol hirdessük?
-
-Első ütem:
-termékek fenn vannak, árakkal, lehet árajánlatot kérni.
-2. ütem:
-online fizetés
+	

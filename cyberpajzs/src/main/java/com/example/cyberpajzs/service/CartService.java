@@ -4,13 +4,13 @@ import com.example.cyberpajzs.entity.CartItem;
 import com.example.cyberpajzs.entity.Product;
 import com.example.cyberpajzs.entity.User;
 import com.example.cyberpajzs.repository.CartItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.cyberpajzs.repository.ProductRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,79 +18,135 @@ import java.util.Optional;
 public class CartService {
 
     private final CartItemRepository cartItemRepository;
+    private final ProductRepository productRepository;
     private final UserService userService;
-    private final ProductService productService;
 
-    @Autowired
-    public CartService(CartItemRepository cartItemRepository, UserService userService, ProductService productService) {
+    public CartService(CartItemRepository cartItemRepository, ProductRepository productRepository, UserService userService) {
         this.cartItemRepository = cartItemRepository;
+        this.productRepository = productRepository;
         this.userService = userService;
-        this.productService = productService;
+    }
+
+    @Transactional
+    public void addProductToCart(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("A termék nem található: " + productId));
+
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("A mennyiségnek pozitív számnak kell lennie.");
+        }
+
+        if (product.getStock() < quantity) {
+            throw new IllegalStateException("Nincs elegendő készlet a " + product.getName() + " termékből.");
+        }
+
+        User currentUser = null;
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals("anonymousUser")) {
+            Optional<User> userOptional = userService.findUserByUsername(username);
+            if (userOptional.isPresent()) {
+                currentUser = userOptional.get();
+            }
+        }
+
+        CartItem cartItem = cartItemRepository.findByUserAndProduct(currentUser, product)
+                .orElse(new CartItem());
+
+        if (cartItem.getId() == null) { // Új kosárelem
+            cartItem.setUser(currentUser);
+            cartItem.setProduct(product);
+            cartItem.setQuantity(quantity);
+            cartItem.setPriceAtOrder(product.getPrice());
+        } else { // Meglévő kosárelem, frissítjük a mennyiséget
+            cartItem.setQuantity(cartItem.getQuantity() + quantity);
+        }
+
+        cartItemRepository.save(cartItem);
     }
 
     public List<CartItem> getCartItems() {
-        return userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName())
-                .map(cartItemRepository::findByUser)
-                .orElse(Collections.<CartItem>emptyList());
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username.equals("anonymousUser")) {
+            return new ArrayList<>();
+        }
+
+        Optional<User> userOptional = userService.findUserByUsername(username);
+
+        if (userOptional.isPresent()) {
+            User currentUser = userOptional.get();
+            return cartItemRepository.findByUser(currentUser);
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     public BigDecimal calculateCartTotal() {
-        return getCartItems().stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+        List<CartItem> cartItems = getCartItems();
+        return cartItems.stream()
+                .map(item -> item.getPriceAtOrder().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Transactional
-    public void addProductToCart(Product product, int quantity) {
-        User currentUser = userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Felhasználó nem található."));
+    public void updateCartItemQuantity(Long productId, int newQuantity) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username.equals("anonymousUser")) {
+            throw new IllegalStateException("A kosár frissítéséhez be kell jelentkezni vagy vendégként kell kezelni a kosarat (ez a funkció jelenleg nem támogatott).");
+        }
 
-        Optional<CartItem> existingItemOptional = cartItemRepository.findByUserAndProduct(currentUser, product);
-        if (existingItemOptional.isPresent()) {
-            CartItem existingItem = existingItemOptional.get();
-            existingItem.setQuantity(existingItem.getQuantity() + quantity);
-            cartItemRepository.save(existingItem);
-        } else {
-            CartItem newItem = new CartItem();
-            newItem.setProduct(product);
-            newItem.setUser(currentUser);
-            newItem.setQuantity(quantity);
-            newItem.setPrice(product.getPrice());
-            cartItemRepository.save(newItem);
+        Optional<User> userOptional = userService.findUserByUsername(username);
+
+        if (userOptional.isPresent()) {
+            User currentUser = userOptional.get();
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("A termék nem található: " + productId));
+
+            CartItem cartItem = cartItemRepository.findByUserAndProduct(currentUser, product)
+                    .orElseThrow(() -> new IllegalArgumentException("A kosárelem nem található."));
+
+            if (newQuantity <= 0) {
+                cartItemRepository.delete(cartItem);
+            } else {
+                if (product.getStock() < newQuantity) {
+                    throw new IllegalStateException("Nincs elegendő készlet a " + product.getName() + " termékből.");
+                }
+                cartItem.setQuantity(newQuantity);
+                cartItemRepository.save(cartItem);
+            }
         }
     }
 
     @Transactional
-    public void updateProductQuantity(Long productId, int quantity) {
-        User currentUser = userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Felhasználó nem található."));
-
-        Optional<CartItem> itemOptional = cartItemRepository.findByUserAndProductId(currentUser, productId);
-        itemOptional.ifPresent(item -> {
-            if (quantity > 0) {
-                item.setQuantity(quantity);
-                cartItemRepository.save(item);
-            } else {
-                cartItemRepository.delete(item);
-            }
-        });
-    }
-
-    @Transactional
     public void removeProductFromCart(Long productId) {
-        User currentUser = userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Felhasználó nem található."));
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username.equals("anonymousUser")) {
+            throw new IllegalStateException("A kosárból való eltávolításhoz be kell jelentkezni vagy vendégként kell kezelni a kosarat.");
+        }
 
-        Optional<CartItem> itemOptional = cartItemRepository.findByUserAndProductId(currentUser, productId);
-        itemOptional.ifPresent(cartItemRepository::delete);
+        Optional<User> userOptional = userService.findUserByUsername(username);
+
+        if (userOptional.isPresent()) {
+            User currentUser = userOptional.get();
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("A termék nem található: " + productId));
+
+            cartItemRepository.findByUserAndProduct(currentUser, product)
+                    .ifPresent(cartItemRepository::delete);
+        }
     }
 
     @Transactional
     public void clearCart() {
-        User currentUser = userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Felhasználó nem található."));
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username.equals("anonymousUser")) {
+            throw new IllegalStateException("A kosár ürítéséhez be kell jelentkezni vagy vendégként kell kezelni a kosarat.");
+        }
 
-        List<CartItem> userCart = cartItemRepository.findByUser(currentUser);
-        cartItemRepository.deleteAll(userCart);
+        Optional<User> userOptional = userService.findUserByUsername(username);
+
+        if (userOptional.isPresent()) {
+            User currentUser = userOptional.get();
+            cartItemRepository.deleteByUser(currentUser);
+        }
     }
 }

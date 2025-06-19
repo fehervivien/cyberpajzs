@@ -9,7 +9,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Optional;
 
 @Controller
 public class ProfileController {
@@ -21,38 +24,45 @@ public class ProfileController {
     }
 
     @GetMapping("/profile")
-    public String showProfile(Model model) {
+    public String showProfile(Model model, RedirectAttributes redirectAttributes) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+        String username = authentication.getName(); // A bejelentkezett felhasználó neve
 
-        User currentUser = userService.findUserByUsername(currentUsername)
-                .orElseThrow(() -> new IllegalStateException("Bejelentkezett felhasználó nem található."));
+        Optional<User> userOptional = userService.findUserByUsername(username);
 
-        model.addAttribute("user", currentUser);
+        if (userOptional.isPresent()) {
+            model.addAttribute("user", userOptional.get());
+        } else {
+            // Ez elvileg nem fordulhat elő, ha a felhasználó be van jelentkezve
+            redirectAttributes.addFlashAttribute("error", "Hiba: A felhasználói profil nem található.");
+            return "redirect:/login";
+        }
         return "profile";
     }
 
     @PostMapping("/profile")
-    public String updateProfile(@ModelAttribute User user, RedirectAttributes redirectAttributes) {
+    public String updateProfile(@ModelAttribute("user") User user,
+                                @RequestParam(value = "newPassword", required = false) String newPassword,
+                                RedirectAttributes redirectAttributes) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+        String username = authentication.getName();
 
-        User currentUser = userService.findUserByUsername(currentUsername)
-                .orElseThrow(() -> new IllegalStateException("Bejelentkezett felhasználó nem található."));
+        Optional<User> currentUserOptional = userService.findUserByUsername(username);
+        if (currentUserOptional.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Hiba: A felhasználói profil nem található.");
+            return "redirect:/login";
+        }
+
+        user.setId(currentUserOptional.get().getId());
 
         try {
-            // Frissítjük a felhasználó adatait (email, firstName, lastName).
-            // A felhasználónév nem módosítható.
-            currentUser.setEmail(user.getEmail());
-            currentUser.setFirstName(user.getFirstName());
-            currentUser.setLastName(user.getLastName());
-            userService.saveUser(currentUser); // Menti a frissített felhasználót
-
+            userService.updateProfile(user, newPassword);
             redirectAttributes.addFlashAttribute("success", "Profil sikeresen frissítve!");
-            return "redirect:/profile";
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Hiba történt a profil frissítése során: " + e.getMessage());
-            return "redirect:/profile";
+            redirectAttributes.addFlashAttribute("error", "Hiba történt a profil frissítése során.");
         }
+        return "redirect:/profile";
     }
 }

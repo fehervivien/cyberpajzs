@@ -1,31 +1,42 @@
 package com.example.cyberpajzs.config;
 
+import com.example.cyberpajzs.entity.NewsArticle; // Importálva
 import com.example.cyberpajzs.entity.Product;
 import com.example.cyberpajzs.entity.User;
+import com.example.cyberpajzs.repository.NewsArticleRepository; // Importálva
 import com.example.cyberpajzs.repository.ProductRepository;
 import com.example.cyberpajzs.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime; // Importálva
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
 public class DatabaseInitializer implements CommandLineRunner {
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProductRepository productRepository;
+    private final NewsArticleRepository newsArticleRepository;
 
-    public DatabaseInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder, ProductRepository productRepository) {
+    public DatabaseInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder, ProductRepository productRepository, NewsArticleRepository newsArticleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.productRepository = productRepository;
+        this.newsArticleRepository = newsArticleRepository;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        if (userRepository.count() == 0) {
+        // Ellenőrizzük az admin felhasználót
+        Optional<User> adminUserOptional = userRepository.findByUsername("admin");
+
+        if (adminUserOptional.isEmpty()) {
             User adminUser = new User();
             adminUser.setUsername("admin");
             adminUser.setEmail("admin@cyberpajzs.hu");
@@ -40,8 +51,30 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             userRepository.save(adminUser);
             System.out.println("Alapértelmezett admin felhasználó létrehozva: admin / password");
+        } else {
+            User adminUser = adminUserOptional.get();
+            Set<String> currentRoles = adminUser.getRoles();
+            boolean changed = false;
+
+            if (!currentRoles.contains("ROLE_USER")) {
+                currentRoles.add("ROLE_USER");
+                changed = true;
+            }
+            if (!currentRoles.contains("ROLE_ADMIN")) {
+                currentRoles.add("ROLE_ADMIN");
+                changed = true;
+            }
+
+            if (changed) {
+                adminUser.setRoles(currentRoles);
+                userRepository.save(adminUser);
+                System.out.println("Admin felhasználó szerepkörei frissítve.");
+            } else {
+                System.out.println("Admin felhasználó már létezik és szerepkörei rendben vannak.");
+            }
         }
 
+        // Ellenőrizzük, hogy vannak-e már termékek
         if (productRepository.count() == 0) {
             Product testProduct = new Product();
             testProduct.setName("Cyberpajzs Pro");
@@ -66,6 +99,33 @@ public class DatabaseInitializer implements CommandLineRunner {
             anotherTestProduct.setLicenseInfo("6 hónapos licenc 2 eszközre. Ideális otthoni használatra.");
             productRepository.save(anotherTestProduct);
             System.out.println("Alapértelmezett teszt termék létrehozva: CyberGuard Otthoni");
+        } else {
+            System.out.println("Termékek már léteznek az adatbázisban.");
+        }
+
+        // Teszt hírcikkek inicializálása
+        if (newsArticleRepository.count() == 0) {
+            NewsArticle news1 = new NewsArticle();
+            news1.setTitle("Új generációs tűzfal érkezett!");
+            news1.setContent("Büszkén jelentjük be, hogy webshopunk kínálata bővült a forradalmi 'ShieldGuard 2025' tűzfallal. Ez a szoftver mesterséges intelligencia alapú védelemmel óvja hálózatát a legújabb fenyegetések ellen. Ne hagyja ki!");
+            news1.setPublicationDate(LocalDateTime.now().minusDays(5));
+            newsArticleRepository.save(news1);
+
+            NewsArticle news2 = new NewsArticle();
+            news2.setTitle("Nyári akciók a Cyberpajzsnál!");
+            news2.setContent("Készülj fel a nyári utazásokra és a távoli munkára biztonságban! Akár 30% kedvezmény a kiválasztott VPN szolgáltatásokra és mobilbiztonsági alkalmazásokra. Látogass el a termékek oldalra!");
+            news2.setPublicationDate(LocalDateTime.now().minusDays(10));
+            newsArticleRepository.save(news2);
+
+            NewsArticle news3 = new NewsArticle();
+            news3.setTitle("Adathalászat elleni tippek a Cyberpajzstól");
+            news3.setContent("Az adathalászat (phishing) továbbra is az egyik leggyakoribb online fenyegetés. Blogbejegyzésünkben összegyűjtöttük a legjobb tippeket, hogyan ismerheti fel és kerülheti el az adathalász támadásokat. Legyen naprakész és biztonságban!");
+            news3.setPublicationDate(LocalDateTime.now().minusDays(15));
+            newsArticleRepository.save(news3);
+
+            System.out.println("Alapértelmezett hírcikkek létrehozva.");
+        } else {
+            System.out.println("Hírcikkek már léteznek az adatbázisban.");
         }
     }
 }

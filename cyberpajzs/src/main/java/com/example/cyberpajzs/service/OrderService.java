@@ -5,8 +5,10 @@ import com.example.cyberpajzs.entity.Order;
 import com.example.cyberpajzs.entity.OrderItem;
 import com.example.cyberpajzs.entity.OrderType;
 import com.example.cyberpajzs.entity.User;
+import com.example.cyberpajzs.entity.License; // Importálva a License entitást
 import com.example.cyberpajzs.repository.OrderItemRepository;
 import com.example.cyberpajzs.repository.OrderRepository;
+import com.example.cyberpajzs.repository.LicenseRepository; // Importálva a LicenseRepository-t
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors; // Importálva a stream API-hoz
 
 @Service
 public class OrderService {
@@ -23,17 +26,19 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartService cartService;
     private final LicenseService licenseService;
+    private final LicenseRepository licenseRepository; // Hozzáadva
 
     public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
-                        CartService cartService, LicenseService licenseService) {
+                        CartService cartService, LicenseService licenseService, LicenseRepository licenseRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartService = cartService;
         this.licenseService = licenseService;
+        this.licenseRepository = licenseRepository; // Inicializálás
     }
 
     @Transactional
-    public Order placeOrder(User user, // lehet NULL
+    public Order placeOrder(User user,
                             OrderType orderType,
                             String companyName,
                             String taxNumber,
@@ -46,7 +51,6 @@ public class OrderService {
         }
 
         Order order = new Order();
-        // lehet NULL
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
         order.setStatus("PENDING");
@@ -78,10 +82,9 @@ public class OrderService {
             totalAmount = totalAmount.add(orderItem.getPriceAtOrder().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
 
             for (int i = 0; i < cartItem.getQuantity(); i++) {
-                // A licencet továbbra is hozzárendeljük a userhez, ha van, egyébként null lesz
                 licenseService.assignLicenseToUser(
                         cartItem.getProduct(),
-                        user, // lehet null
+                        user,
                         orderItem,
                         LocalDateTime.now()
                 );
@@ -99,7 +102,6 @@ public class OrderService {
     }
 
     public List<Order> getUserOrders(User user) {
-        // Ez a metódus csak bejelentkezett felhasználókhoz tartozó rendeléseket tudja lekérni
         return orderRepository.findByUser(user);
     }
 
@@ -118,5 +120,12 @@ public class OrderService {
 
         order.setStatus(newStatus);
         orderRepository.save(order);
+    }
+
+    public List<License> getLicensesByOrderItem(List<OrderItem> orderItems) {
+        if (orderItems == null || orderItems.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return licenseRepository.findByOrderItemIn(orderItems);
     }
 }
